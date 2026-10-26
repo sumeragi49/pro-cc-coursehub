@@ -22,7 +22,7 @@ class OldSearchController extends Controller
         $categoryId = $request->input('category');
         $tagSlug = $request->input('tag');
 
-        $query = Course::where('status', 'published');
+        $query = Course::published();
 
         if ($keyword) {
             $query->where(function ($q) use ($keyword) {
@@ -64,7 +64,7 @@ class OldSearchController extends Controller
             return response()->json([]);
         }
 
-        $courses = Course::where('status', 'published')
+        $courses = Course::published()
             ->where('title', 'LIKE', "%{$keyword}%")
             ->limit(5)
             ->pluck('title');

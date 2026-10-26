@@ -12,7 +12,7 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         // Get published courses for the listing page
-        $query = Course::where('status', 'published');
+        $query = Course::published();
 
         if ($request->filled('search')) {
             $search = $request->input('search');

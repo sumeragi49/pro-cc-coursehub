@@ -68,8 +68,9 @@ class Course extends Model
 
     public function getProgressRate($userId): int
     {
-        $totalLessons = $this->chapters()->withCount('lessons')->get()
-            ->sum('lessons_count');
+        $totalLessons = Lesson::whereIn('chapter_id', $this->chapters()->select('id'))
+            ->where('is_published', true)
+            ->count();
 
         $completedLessons = LessonProgress::where('user_id', $userId)
             ->whereIn('lesson_id', $this->getAllLessonIds())
