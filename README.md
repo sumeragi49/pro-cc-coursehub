@@ -43,7 +43,7 @@ docker compose up -d
 5. マイグレーション・シーディング
 
 ```bash
-php artisan migrate --seed
+./vendor/bin/sail artisan migrate --seed
 ```
 
 6. アプリケーションキーの生成
@@ -68,7 +68,7 @@ QUEUE_CONNECTION=redis
 ## テスト
 
 ```bash
-php artisan test
+./vendor/bin/sail artisan test
 ```
 
 ## コーディング規約
