@@ -69,5 +69,59 @@
             </div>
         @endforeach
     </div>
+
+    {{-- レビュー --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mt-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">レビュー</h2>
+            @if($reviews->isNotEmpty())
+                <span class="text-sm text-gray-600">
+                    <span class="text-amber-500">★</span>
+                    {{ number_format($averageRating, 1) }}（{{ $reviews->count() }}件）
+                </span>
+            @endif
+        </div>
+
+        @if(auth()->user()->isStudent())
+            @if($canReview)
+                <form method="POST" action="{{ route('courses.reviews.store', $course) }}" class="mb-6 pb-6 border-b border-gray-200 space-y-4">
+                    @csrf
+                    <div>
+                        <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">星評価</label>
+                        <select id="rating" name="rating" required class="rounded-lg border-gray-300 text-sm">
+                            <option value="">選択してください</option>
+                            @for($i = 5; $i >= 1; $i--)
+                                <option value="{{ $i }}" @selected((int) old('rating') === $i)>{{ str_repeat('★', $i) }}{{ str_repeat('☆', 5 - $i) }}（{{ $i }}）</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div>
+                        <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">コメント（任意）</label>
+                        <textarea id="comment" name="comment" rows="3" maxlength="1000" class="w-full rounded-lg border-gray-300 text-sm">{{ old('comment') }}</textarea>
+                    </div>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg px-5 py-2.5 shadow-sm transition-all duration-150">レビューを投稿</button>
+                </form>
+            @elseif($hasReviewed)
+                <p class="mb-6 pb-6 border-b border-gray-200 text-sm text-gray-500">このコースのレビューは投稿済みです。</p>
+            @else
+                <p class="mb-6 pb-6 border-b border-gray-200 text-sm text-gray-500">受講完了後にレビューを投稿できます。</p>
+            @endif
+        @endif
+
+        @forelse($reviews as $review)
+            <div class="py-3 {{ ! $loop->last ? 'border-b border-gray-100' : '' }}">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-sm font-medium text-gray-900">{{ $review->user->name }}</span>
+                    <span class="text-amber-500 text-sm">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</span>
+                    <span class="text-xs text-gray-400">{{ $review->created_at->format('Y/m/d') }}</span>
+                </div>
+                @if($review->comment)
+                    <p class="text-sm text-gray-700 whitespace-pre-line">{{ $review->comment }}</p>
+                @endif
+            </div>
+        @empty
+            <p class="text-sm text-gray-500">まだレビューはありません。</p>
+        @endforelse
+    </div>
 </div>
 @endsection
