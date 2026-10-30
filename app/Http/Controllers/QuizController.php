@@ -14,6 +14,21 @@ class QuizController extends Controller
     {
         $this->authorize('view', $course);
 
+        if (auth()->user()->role === 'student') {
+            $hasPassed = Submission::where('user_id', auth()->id())
+                ->where('quiz_id', $quiz->id)
+                ->where('score', '>=', $quiz->passing_score)
+                ->exists();
+
+            if ($hasPassed) {
+                return redirect()
+                    ->route('courses.quizzes.result', [$course, $quiz])
+                    ->withErrors(['quiz' => '合格済みのため再受験できません。']);
+            }
+
+            $this->authorize('submit', [Submission::class, $quiz, $course]);
+        }
+
         $quiz->load('questions.options');
 
         return view('quizzes.show', compact('course', 'quiz'));
@@ -21,6 +36,8 @@ class QuizController extends Controller
 
     public function submit(Request $request, Course $course, Quiz $quiz)
     {
+        $this->authorize('submit', [Submission::class, $quiz, $course]);
+
         $answers = $request->input('answers', []);
 
         $correctCount = 0;
@@ -52,11 +69,17 @@ class QuizController extends Controller
 
         $quiz->load('questions.options');
 
-        $submission = Submission::where('user_id', auth()->id())
+        $submissions = Submission::where('user_id', auth()->id())
             ->where('quiz_id', $quiz->id)
-            ->latest()
-            ->firstOrFail();
+            ->latest('submitted_at')
+            ->latest('id')
+            ->get();
 
-        return view('quizzes.result', compact('course', 'quiz', 'submission'));
+        abort_if($submissions->isEmpty(), 404);
+
+        $submission = $submissions->first();
+        $hasPassed = $submissions->contains(fn ($history) => $history->score >= $quiz->passing_score);
+
+        return view('quizzes.result', compact('course', 'quiz', 'submission', 'submissions', 'hasPassed'));
     }
 }
