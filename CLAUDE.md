@@ -4,28 +4,36 @@
 
 ## 技術スタック
 
+- PHP 8.2
 - Laravel 10
-- MySQL
+- Laravel Sail（Docker 開発環境）
+- MySQL 8.0
 - Blade + Tailwind CSS
 
 ## 開発環境
 
-Docker Compose で起動:
+Sail で起動:
 
 ```bash
-docker compose up -d
+./vendor/bin/sail up -d
 ```
 
 マイグレーション:
 
 ```bash
-php artisan migrate
+./vendor/bin/sail artisan migrate
 ```
 
 シーディング:
 
 ```bash
-php artisan db:seed
+./vendor/bin/sail artisan db:seed
+```
+
+## テスト
+
+```bash
+./vendor/bin/sail artisan test
 ```
 
 ## ユーザーロール
@@ -34,8 +42,17 @@ php artisan db:seed
 - coach: コーチ（コース作成）
 - student: 受講生
 
-## テスト
+## コース構造
 
-```bash
-php artisan test
-```
+Course > Chapter > Lesson > Quiz の階層構造。
+
+- Course: コーチが作成するコース。Category・Tag を持つ
+- Chapter: コース内の章（`order` で並び順を管理）
+- Lesson: 章内のレッスン（公開 / 非公開）。受講生ごとの進捗は LessonProgress
+- Quiz: レッスンに紐づく小テスト（Lesson と 1:1）。Question > Option、受講生の回答は Submission
+
+受講登録は Enrollment（`EnrollmentService` が担当）。全レッスン完了時に `CourseCompleted` イベントが発火します。
+
+## コーディング規約・設計方針
+
+README.md の「コーディング規約」「設計方針」セクションを参照。
