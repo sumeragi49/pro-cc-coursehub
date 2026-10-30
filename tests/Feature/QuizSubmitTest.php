@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Chapter;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\Option;
 use App\Models\Question;
@@ -32,6 +33,12 @@ class QuizSubmitTest extends TestCase
         $chapter = Chapter::factory()->create(['course_id' => $this->course->id]);
         $lesson = Lesson::factory()->create(['chapter_id' => $chapter->id]);
         $this->quiz = Quiz::factory()->create(['lesson_id' => $lesson->id]);
+
+        Enrollment::factory()->create([
+            'user_id' => $this->student->id,
+            'course_id' => $this->course->id,
+            'status' => 'active',
+        ]);
     }
 
     /**
@@ -113,5 +120,38 @@ class QuizSubmitTest extends TestCase
         $this->submit([])->assertRedirect();
 
         $this->assertSame(0, $this->latestScore());
+    }
+
+    public function test_option_from_another_question_is_not_counted_as_correct(): void
+    {
+        $questions = $this->createQuestions(2);
+
+        $this->submit([
+            ['question_id' => $questions[0][0]->id, 'option_id' => $questions[1][1]->id],
+            ['question_id' => $questions[1][0]->id],
+        ])->assertRedirect();
+
+        $this->assertSame(0, $this->latestScore());
+    }
+
+    public function test_cannot_submit_quiz_belonging_to_another_course(): void
+    {
+        $otherCourse = Course::factory()->create();
+        $otherChapter = Chapter::factory()->create(['course_id' => $otherCourse->id]);
+        $otherLesson = Lesson::factory()->create(['chapter_id' => $otherChapter->id]);
+        $otherQuiz = Quiz::factory()->create(['lesson_id' => $otherLesson->id]);
+
+        $this->actingAs($this->student)
+            ->post(route('courses.quizzes.submit', [$this->course, $otherQuiz]), ['answers' => []])
+            ->assertNotFound();
+
+        $this->assertSame(0, Submission::count());
+    }
+
+    public function test_invalid_answers_payload_is_rejected(): void
+    {
+        $this->actingAs($this->student)
+            ->post(route('courses.quizzes.submit', [$this->course, $this->quiz]), ['answers' => 'invalid'])
+            ->assertSessionHasErrors('answers');
     }
 }

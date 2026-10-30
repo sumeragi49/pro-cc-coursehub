@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SubmitQuizRequest;
 use App\Models\Course;
 use App\Models\Option;
 use App\Models\Quiz;
 use App\Models\Submission;
-use Illuminate\Http\Request;
 
 class QuizController extends Controller
 {
     public function show(Course $course, Quiz $quiz)
     {
+        $this->ensureQuizBelongsToCourse($course, $quiz);
         $this->authorize('view', $course);
 
         if (auth()->user()->role === 'student') {
@@ -34,16 +35,19 @@ class QuizController extends Controller
         return view('quizzes.show', compact('course', 'quiz'));
     }
 
-    public function submit(Request $request, Course $course, Quiz $quiz)
+    public function submit(SubmitQuizRequest $request, Course $course, Quiz $quiz)
     {
+        $this->ensureQuizBelongsToCourse($course, $quiz);
         $this->authorize('submit', [Submission::class, $quiz, $course]);
 
-        $answers = $request->input('answers', []);
+        $answers = $request->validated('answers') ?? [];
 
         $correctCount = 0;
         foreach ($quiz->questions as $question) {
             $userAnswer = collect($answers)->firstWhere('question_id', $question->id);
-            $selectedOption = isset($userAnswer['option_id']) ? Option::find($userAnswer['option_id']) : null;
+            $selectedOption = isset($userAnswer['option_id'])
+                ? Option::where('question_id', $question->id)->find($userAnswer['option_id'])
+                : null;
             if ($selectedOption && $selectedOption->is_correct) {
                 $correctCount++;
             }
@@ -65,6 +69,7 @@ class QuizController extends Controller
 
     public function result(Course $course, Quiz $quiz)
     {
+        $this->ensureQuizBelongsToCourse($course, $quiz);
         $this->authorize('view', $course);
 
         $quiz->load('questions.options');
@@ -81,5 +86,14 @@ class QuizController extends Controller
         $hasPassed = $submissions->contains(fn ($history) => $history->score >= $quiz->passing_score);
 
         return view('quizzes.result', compact('course', 'quiz', 'submission', 'submissions', 'hasPassed'));
+    }
+
+    private function ensureQuizBelongsToCourse(Course $course, Quiz $quiz): void
+    {
+        $belongs = $quiz->lesson()
+            ->whereHas('chapter', fn ($query) => $query->where('course_id', $course->id))
+            ->exists();
+
+        abort_unless($belongs, 404);
     }
 }
