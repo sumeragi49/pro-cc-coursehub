@@ -16,7 +16,7 @@ class AdminDashboardController extends Controller
             'totalStudents' => User::where('role', 'student')->count(),
             'totalCoaches' => User::where('role', 'coach')->count(),
             'totalCourses' => Course::count(),
-            'publishedCourses' => Course::where('status', 'published')->count(),
+            'publishedCourses' => Course::published()->count(),
             'totalEnrollments' => Enrollment::count(),
         ]);
     }

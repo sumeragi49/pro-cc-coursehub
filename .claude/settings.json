@@ -1,9 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php artisan *)",
-      "Bash(composer *)",
-      "Bash(npm *)"
+      "Bash(./vendor/bin/sail artisan *)",
+      "Bash(./vendor/bin/sail composer *)",
+      "Bash(./vendor/bin/sail npm *)",
+      "Bash(./vendor/bin/sail bin pint *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.php) cd \"$CLAUDE_PROJECT_DIR\" && ./vendor/bin/sail exec -T laravel.test ./vendor/bin/pint \"${f#$CLAUDE_PROJECT_DIR/}\" ;; esac"
+          }
+        ]
+      }
     ]
   }
 }
